@@ -9,7 +9,6 @@ const props = defineProps({
 
 defineEmits(['close'])
 
-const editMode = ref(false)
 const personalityTraits = [
   { label: 'Friendly', value: 85 },
   { label: 'Creative', value: 92 },
@@ -21,7 +20,7 @@ const personalityTraits = [
 <template>
   <div
     v-if="show"
-    class="fixed inset-y-0 right-0 w-96 bg-dark-secondary shadow-xl transform transition-transform duration-300"
+    class="fixed inset-y-0 right-0 w-full sm:w-96 bg-dark-secondary shadow-xl transform transition-transform duration-300 z-30"
     :class="show ? 'translate-x-0' : 'translate-x-full'"
   >
     <div class="h-full flex flex-col">
@@ -96,4 +95,11 @@ const personalityTraits = [
       </div>
     </div>
   </div>
+
+  <!-- Backdrop for mobile -->
+  <div 
+    v-if="show"
+    class="fixed inset-0 bg-black bg-opacity-50 z-20 sm:hidden"
+    @click="$emit('close')"
+  ></div>
 </template>

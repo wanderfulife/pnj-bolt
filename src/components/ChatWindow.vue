@@ -1,17 +1,19 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useChatStore } from '../store/chat'
 import Message from './Message.vue'
 import ProfileDrawer from './ProfileDrawer.vue'
 import { 
   PaperAirplaneIcon, 
   EllipsisVerticalIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  ArrowLeftIcon
 } from '@heroicons/vue/24/solid'
 
 const chatStore = useChatStore()
 const newMessage = ref('')
 const showProfile = ref(false)
+const messageContainer = ref(null)
 
 function sendMessage() {
   if (!newMessage.value.trim()) return
@@ -22,6 +24,22 @@ function sendMessage() {
 function toggleProfile() {
   showProfile.value = !showProfile.value
 }
+
+function scrollToBottom() {
+  if (messageContainer.value) {
+    messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+  }
+}
+
+onMounted(() => {
+  scrollToBottom()
+})
+
+watch(() => chatStore.activeChat?.messages, () => {
+  nextTick(() => {
+    scrollToBottom()
+  })
+}, { deep: true })
 </script>
 
 <template>
@@ -29,6 +47,12 @@ function toggleProfile() {
     <!-- Header -->
     <div class="p-4 bg-dark-secondary flex items-center justify-between shadow-md">
       <div class="flex items-center flex-1">
+        <button 
+          class="mr-2 lg:hidden text-text-secondary"
+          @click="chatStore.setActiveChat(null)"
+        >
+          <ArrowLeftIcon class="w-6 h-6" />
+        </button>
         <img :src="chatStore.activeChat.avatar" class="w-10 h-10 rounded-full" />
         <div class="ml-4">
           <h2 class="font-semibold text-text-primary">{{ chatStore.activeChat.name }}</h2>
@@ -49,7 +73,10 @@ function toggleProfile() {
     </div>
 
     <!-- Messages -->
-    <div class="flex-1 p-4 overflow-y-auto bg-dark-bg">
+    <div 
+      ref="messageContainer"
+      class="flex-1 p-4 overflow-y-auto bg-dark-bg"
+    >
       <Message 
         v-for="message in chatStore.activeChat.messages" 
         :key="message.id" 

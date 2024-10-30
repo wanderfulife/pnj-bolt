@@ -7,22 +7,25 @@ import { ref } from 'vue'
 const chatStore = useChatStore()
 const searchQuery = ref('')
 
+const emit = defineEmits(['chat-selected'])
+
 function selectChat(chatId) {
   chatStore.setActiveChat(chatId)
+  emit('chat-selected')
 }
 </script>
 
 <template>
   <div class="h-full flex flex-col bg-dark-secondary">
     <!-- Header -->
-    <div class="p-4 bg-dark-bg">
-      <h1 class="text-xl font-bold mb-4">NPC Chat</h1>
+    <div class="p-4 bg-dark-bg lg:block">
+      <h1 class="text-xl font-bold mb-4 hidden lg:block">NPC Chat</h1>
       <div class="relative">
         <input
           v-model="searchQuery"
           type="text"
           placeholder="Search or start new chat"
-          class="w-full bg-dark-secondary text-text-primary placeholder-text-secondary py-2 px-4 pl-10 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+          class="w-full bg-dark-hover text-text-primary placeholder-text-secondary py-2 px-4 pl-10 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
         />
         <MagnifyingGlassIcon class="w-5 h-5 text-text-secondary absolute left-3 top-2.5" />
       </div>

@@ -16,36 +16,36 @@ function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100">
-    <div class="bg-white p-8 rounded-lg shadow-md w-96">
-      <h1 class="text-2xl font-bold text-center mb-6">Login to NPC Chat</h1>
+  <div class="min-h-screen flex items-center justify-center bg-dark-bg p-4">
+    <div class="bg-dark-secondary p-8 rounded-lg shadow-md w-full max-w-md">
+      <h1 class="text-2xl font-bold text-center mb-6 text-text-primary">Login to NPC Chat</h1>
       <form @submit.prevent="handleLogin" class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700">Email</label>
+          <label class="block text-sm font-medium text-text-primary">Email</label>
           <input
             v-model="email"
             type="email"
             required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+            class="mt-1 block w-full rounded-md bg-dark-hover border-dark-hover text-text-primary p-2.5 focus:ring-2 focus:ring-primary focus:outline-none"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700">Password</label>
+          <label class="block text-sm font-medium text-text-primary">Password</label>
           <input
             v-model="password"
             type="password"
             required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+            class="mt-1 block w-full rounded-md bg-dark-hover border-dark-hover text-text-primary p-2.5 focus:ring-2 focus:ring-primary focus:outline-none"
           />
         </div>
         <button
           type="submit"
-          class="w-full bg-primary text-white p-2 rounded-md hover:bg-secondary"
+          class="w-full bg-primary text-white p-2.5 rounded-md hover:bg-secondary transition-colors"
         >
           Login
         </button>
       </form>
-      <p class="mt-4 text-center text-sm text-gray-600">
+      <p class="mt-4 text-center text-sm text-text-secondary">
         Don't have an account?
         <router-link to="/register" class="text-primary hover:text-secondary">Register</router-link>
       </p>

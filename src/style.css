@@ -14,7 +14,19 @@
 }
 
 body {
-  @apply bg-[#111B21] text-[#E9EDEF];
+  @apply bg-dark-bg text-text-primary;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile Touch Optimizations */
+@media (max-width: 768px) {
+  button, a {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  input, textarea {
+    @apply text-base;
+  }
 }
 
 /* Custom Scrollbar */
@@ -33,4 +45,16 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #4A545B;
+}
+
+/* Hide scrollbar for mobile devices */
+@media (max-width: 768px) {
+  .overflow-y-auto {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .overflow-y-auto::-webkit-scrollbar {
+    display: none;
+  }
 }

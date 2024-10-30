@@ -33,6 +33,11 @@ export const useChatStore = defineStore('chat', () => {
   const activeChat = ref(null)
 
   function setActiveChat(chatId) {
+    if (!chatId) {
+      activeChat.value = null
+      return
+    }
+    
     const chat = conversations.value.find(c => c.id === chatId)
     if (chat) {
       chat.unread = 0

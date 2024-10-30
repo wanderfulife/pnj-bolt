@@ -19,8 +19,8 @@ defineProps({
       :class="message.type === 'sent' ? 'bg-message-out' : 'bg-dark-secondary'"
     >
       <div class="flex items-end space-x-2">
-        <p class="text-text-primary">{{ message.text }}</p>
-        <span class="text-xs text-text-secondary min-w-[55px] self-end">
+        <p class="text-text-primary break-words">{{ message.text }}</p>
+        <span class="text-xs text-text-secondary min-w-[55px] self-end whitespace-nowrap">
           {{ format(message.timestamp, 'HH:mm') }}
         </span>
       </div>
