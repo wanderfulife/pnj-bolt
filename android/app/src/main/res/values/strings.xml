@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">npj</string>
+    <string name="title_activity_main">npj</string>
+    <string name="package_name">com.jay.npj</string>
+    <string name="custom_url_scheme">com.jay.npj</string>
+</resources>

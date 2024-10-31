@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
 export default defineConfig({
+  base: './', // Add this line
   plugins: [vue()],
   resolve: {
     alias: {
@@ -11,9 +12,12 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    host: '0.0.0.0', // Add this line
   },
   build: {
     target: 'esnext',
-    minify: 'esbuild'
+    minify: 'esbuild',
+    sourcemap: true, // Add this line
+    outDir: 'dist'  // Add this line
   }
 })

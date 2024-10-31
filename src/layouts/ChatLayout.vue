@@ -69,8 +69,7 @@ onUnmounted(() => {
         class="h-full flex items-center justify-center text-text-secondary"
       >
         <div class="text-center p-4">
-          <h2 class="text-2xl font-semibold mb-2">Welcome to NPC Chat</h2>
-          <p>Select a conversation to start chatting</p>
+          <h2 class="text-2xl font-semibold mb-2">Welcome to PNJ</h2>
         </div>
       </div>
     </div>
