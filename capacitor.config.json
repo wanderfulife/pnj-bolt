@@ -2,32 +2,12 @@
   "appId": "com.jay.npj",
   "appName": "npj",
   "webDir": "dist",
-  "bundledWebRuntime": false,
   "server": {
-    "url": "http://192.168.1.161:3000",
+    "url": "http://10.0.2.2:3000",
     "cleartext": true,
-    "hostname": "192.168.1.161"
+    "androidScheme": "http"
   },
-  "ios": {
-    "contentInset": "always",
-    "backgroundColor": "#000000",
-    "preferredContentMode": "mobile",
-    "scheme": "npj",
-    "allowsLinkPreview": false,
-    "limitsNavigationsToAppBoundDomains": true,
-    "statusBar": {
-      "style": "dark",
-      "overlay": true
-    }
-  },
-  "plugins": {
-    "Keyboard": {
-      "resize": "body",
-      "style": "dark"
-    },
-    "SplashScreen": {
-      "launchShowDuration": 0,
-      "backgroundColor": "#000000"
-    }
+  "android": {
+    "allowMixedContent": true
   }
 }

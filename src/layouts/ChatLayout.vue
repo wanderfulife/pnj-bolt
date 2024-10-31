@@ -88,7 +88,11 @@ onUnmounted(() => {
         class="h-full flex items-center justify-center text-text-secondary"
       >
         <div class="text-center p-4">
+<<<<<<< HEAD
           <h2 class="text-2xl font-semibold mb-2">Welcome PNJ</h2>
+=======
+          <h2 class="text-2xl font-semibold mb-2">Welcome to JAY</h2>
+>>>>>>> a31dddb (v00)
         </div>
       </div>
     </main>
