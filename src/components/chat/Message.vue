@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { useAuthStore } from '../../stores/auth'
 import { formatMessageTime } from '../../utils/dateUtils'
 
 const props = defineProps({
@@ -17,12 +18,13 @@ const props = defineProps({
   }
 })
 
-const isAI = computed(() => props.message.sender === 'ai')
+const authStore = useAuthStore()
+const isOwnMessage = computed(() => props.message.senderId === authStore.user.uid)
 const formattedTime = computed(() => formatMessageTime(props.message.timestamp))
 
 const messageClasses = computed(() => ({
-  'ml-12': !isAI.value && !props.isFirstInGroup,
-  'mr-12': isAI.value && !props.isFirstInGroup,
+  'ml-12': !isOwnMessage.value && !props.isFirstInGroup,
+  'mr-12': isOwnMessage.value && !props.isFirstInGroup,
   'mb-1': !props.isLastInGroup,
   'mb-3': props.isLastInGroup
 }))
@@ -31,19 +33,19 @@ const messageClasses = computed(() => ({
 <template>
   <div 
     class="flex items-end"
-    :class="[isAI ? 'justify-start' : 'justify-end', messageClasses]"
+    :class="[isOwnMessage ? 'justify-end' : 'justify-start', messageClasses]"
   >
     <img 
-      v-if="isAI && isFirstInGroup"
-      :src="message.avatar"
+      v-if="!isOwnMessage && isFirstInGroup"
+      :src="message.senderAvatar"
       class="avatar avatar-sm mr-2"
-      :alt="message.sender"
+      :alt="message.senderName"
     />
     
     <div 
       class="message-bubble"
       :class="[
-        isAI ? 'message-in' : 'message-out',
+        isOwnMessage ? 'message-out' : 'message-in',
         {'rounded-t-2xl': isFirstInGroup},
         {'rounded-b-2xl': isLastInGroup}
       ]"
@@ -53,7 +55,7 @@ const messageClasses = computed(() => ({
         <span class="text-xs opacity-70">
           {{ formattedTime }}
         </span>
-        <span v-if="!isAI && message.status" class="text-xs">
+        <span v-if="isOwnMessage" class="text-xs">
           {{ message.status === 'seen' ? '✓✓' : '✓' }}
         </span>
       </div>

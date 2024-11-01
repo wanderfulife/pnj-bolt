@@ -1,42 +1,39 @@
 <script setup>
-import { onMounted, ref } from "vue";
-import ChatLayout from './layouts/ChatLayout.vue';
-import LoadingSpinner from './components/shared/LoadingSpinner.vue';
-import { useChatStore } from './stores/chat';
-import { useUserStore } from './stores/user';
+import { onMounted, ref } from 'vue'
+import { useAuthStore } from './stores/auth'
+import { useChatStore } from './stores/chat'
+import LoadingSpinner from './components/shared/LoadingSpinner.vue'
+import { useRouter } from 'vue-router'
 
-const isLoading = ref(true);
-const chatStore = useChatStore();
-const userStore = useUserStore();
+const authStore = useAuthStore()
+const chatStore = useChatStore()
+const router = useRouter()
+const isInitializing = ref(true)
 
 onMounted(async () => {
   try {
-    // Simule l'initialisation des stores
-    await Promise.all([
-      new Promise(resolve => setTimeout(resolve, 1000))
-    ]);
+    await authStore.initialize()
     
-    // Vérifie que les stores sont initialisés
-    if (!chatStore.conversations || !userStore.user) {
-      console.error('Stores not initialized properly');
+    if (authStore.isAuthenticated) {
+      await chatStore.initializeListeners()
+      router.push('/')
+    } else {
+      router.push('/auth/login')
     }
-    
-    isLoading.value = false;
   } catch (error) {
-    console.error('Error loading app:', error);
-    isLoading.value = false;
+    console.error('Initialization error:', error)
+  } finally {
+    isInitializing.value = false
   }
-});
+})
 </script>
 
 <template>
-  <div class="h-screen bg-dark-primary text-text-primary">
-    <!-- État de chargement -->
-    <div v-if="isLoading" class="h-screen flex items-center justify-center">
+  <div class="h-screen bg-dark-primary">
+    <div v-if="isInitializing" class="h-screen flex items-center justify-center">
       <LoadingSpinner size="lg" />
     </div>
     
-    <!-- Contenu principal -->
-    <ChatLayout v-else />
+    <router-view v-else />
   </div>
 </template>

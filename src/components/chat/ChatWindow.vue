@@ -1,23 +1,73 @@
 <script setup>
-import { ref } from 'vue';
-import { useChatStore } from '../../stores/chat';
-import { MESSAGE_STATUS } from '../../constants/chatConstants';
-import Message from './Message.vue';
+import { ref, onMounted, watch } from 'vue'
+import { useChatStore } from '../../stores/chat'
+import { useAuthStore } from '../../stores/auth'
+import { dbUtils } from '../../firebase/utils'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import Message from './Message.vue'
+import LoadingSpinner from '../shared/LoadingSpinner.vue'
 
-const chatStore = useChatStore();
-const newMessage = ref('');
+const chatStore = useChatStore()
+const authStore = useAuthStore()
+const newMessage = ref('')
+const messages = ref([])
+const isLoading = ref(false)
 
-const sendMessage = () => {
-  if (!newMessage.value.trim()) return;
-  chatStore.sendMessage(newMessage.value);
-  newMessage.value = '';
-};
+let unsubscribeMessages = null
 
-defineEmits(['show-profile', 'back']);
+onMounted(() => {
+  if (chatStore.activeConversation) {
+    subscribeToMessages()
+  }
+})
+
+watch(() => chatStore.activeConversation, (newConversation) => {
+  if (unsubscribeMessages) {
+    unsubscribeMessages()
+  }
+  if (newConversation) {
+    subscribeToMessages()
+  }
+})
+
+function subscribeToMessages() {
+  unsubscribeMessages = dbUtils.listenToMessages(
+    chatStore.activeConversation.id,
+    (updatedMessages) => {
+      messages.value = updatedMessages
+    }
+  )
+}
+
+async function sendMessage() {
+  if (!newMessage.value.trim() || !chatStore.activeConversation) return
+
+  try {
+    isLoading.value = true
+    const messageData = {
+      text: newMessage.value.trim(),
+      senderId: authStore.user.uid,
+      senderName: authStore.user.name,
+      senderAvatar: authStore.user.avatar,
+      timestamp: serverTimestamp(),
+      status: 'sent'
+    }
+
+    await dbUtils.sendMessage(chatStore.activeConversation.id, messageData)
+    newMessage.value = ''
+  } catch (error) {
+    console.error('Error sending message:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+defineEmits(['show-profile', 'back'])
 </script>
 
 <template>
   <div class="chat-container">
+    <!-- Header -->
     <header class="chat-header">
       <div class="flex items-center space-x-3">
         <button 
@@ -28,15 +78,17 @@ defineEmits(['show-profile', 'back']);
         </button>
         
         <img 
-          :src="chatStore.activeChat.avatar" 
+          :src="chatStore.activeConversation?.participants.find(p => p.uid !== authStore.user.uid)?.avatar" 
           class="avatar avatar-sm"
-          :alt="chatStore.activeChat.name"
+          :alt="chatStore.activeConversation?.participants.find(p => p.uid !== authStore.user.uid)?.name"
         />
         
         <div>
-          <h2 class="font-medium text-text-primary">{{ chatStore.activeChat.name }}</h2>
+          <h2 class="font-medium text-text-primary">
+            {{ chatStore.activeConversation?.participants.find(p => p.uid !== authStore.user.uid)?.name }}
+          </h2>
           <p class="text-xs text-text-secondary">
-            <span v-if="chatStore.activeChat.status === 'online'" class="inline-flex items-center">
+            <span v-if="chatStore.activeConversation?.isOnline" class="inline-flex items-center">
               <span class="status-badge status-online mr-1"></span>
               Online
             </span>
@@ -53,18 +105,26 @@ defineEmits(['show-profile', 'back']);
       </button>
     </header>
 
-    <div class="chat-content custom-scrollbar">
+    <!-- Messages -->
+    <div class="chat-content custom-scrollbar" ref="messageContainer">
+      <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-text-secondary">
+        <span class="material-icons text-4xl mb-2">chat</span>
+        <p>Start a conversation</p>
+      </div>
+      
       <Message 
-        v-for="(message, index) in chatStore.activeChat.messages"
+        v-else
+        v-for="(message, index) in messages"
         :key="message.id"
         :message="message"
         :isFirstInGroup="index === 0 || 
-          chatStore.activeChat.messages[index - 1].sender !== message.sender"
-        :isLastInGroup="index === chatStore.activeChat.messages.length - 1 || 
-          chatStore.activeChat.messages[index + 1].sender !== message.sender"
+          messages[index - 1].senderId !== message.senderId"
+        :isLastInGroup="index === messages.length - 1 || 
+          messages[index + 1].senderId !== message.senderId"
       />
     </div>
 
+    <!-- Input -->
     <footer class="chat-footer safe-bottom">
       <div class="flex items-center space-x-2">
         <button class="btn btn-secondary p-2">
@@ -77,14 +137,16 @@ defineEmits(['show-profile', 'back']);
           placeholder="Type a message"
           class="input-field"
           @keyup.enter="sendMessage"
+          :disabled="isLoading"
         />
 
         <button
           @click="sendMessage"
           class="btn btn-primary p-2"
-          :disabled="!newMessage.trim()"
+          :disabled="isLoading || !newMessage.trim()"
         >
-          <span class="material-icons">send</span>
+          <LoadingSpinner v-if="isLoading" size="sm" color="white" />
+          <span v-else class="material-icons">send</span>
         </button>
       </div>
     </footer>
