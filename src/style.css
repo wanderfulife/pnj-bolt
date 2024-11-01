@@ -3,58 +3,72 @@
 @tailwind utilities;
 
 :root {
-  --primary: #00A884;
-  --secondary: #008F72;
-  --dark-bg: #111B21;
-  --dark-secondary: #202C33;
-  --dark-hover: #2A3942;
-  --message-out: #005C4B;
-  --text-primary: #E9EDEF;
-  --text-secondary: #8696A0;
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-dark-bg text-text-primary;
+  @apply bg-dark-primary text-text-primary antialiased;
   -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
 }
 
-/* Mobile Touch Optimizations */
+/* Optimisations mobile */
 @media (max-width: 768px) {
-  button, a {
-    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
-  }
-  
-  input, textarea {
+  input, textarea, button {
     @apply text-base;
   }
 }
 
-/* Custom Scrollbar */
+/* Scrollbar personnalisée */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--dark-secondary);
+  @apply bg-dark-primary;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #374045;
-  border-radius: 3px;
+  @apply bg-dark-hover rounded-full;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #4A545B;
-}
-
-/* Hide scrollbar for mobile devices */
-@media (max-width: 768px) {
-  .overflow-y-auto {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+/* Classes d'utilité */
+@layer components {
+  .chat-container {
+    @apply flex flex-col h-screen bg-dark-primary;
   }
   
-  .overflow-y-auto::-webkit-scrollbar {
-    display: none;
+  .chat-header {
+    @apply flex items-center px-4 h-16 bg-dark-secondary border-b border-border-color;
   }
+  
+  .input-field {
+    @apply w-full px-4 py-2 bg-dark-hover rounded-full text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50;
+  }
+  
+  .btn-primary {
+    @apply bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-lg transition-colors;
+  }
+}
+
+/* Animations */
+.fade-enter-active,
+.fade-leave-active {
+  @apply transition-opacity duration-300;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  @apply opacity-0;
+}
+
+.slide-right-enter-active,
+.slide-right-leave-active {
+  @apply transition-transform duration-300;
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+  @apply translate-x-full;
 }
