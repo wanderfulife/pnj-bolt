@@ -1,23 +1,39 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import ChatLayout from './layouts/ChatLayout.vue';
+import LoadingSpinner from './components/shared/LoadingSpinner.vue';
+import { useChatStore } from './stores/chat';
+import { useUserStore } from './stores/user';
 
 const isLoading = ref(true);
+const chatStore = useChatStore();
+const userStore = useUserStore();
 
-onMounted(() => {
-  console.log('App mounted');
-  setTimeout(() => {
+onMounted(async () => {
+  try {
+    // Simule l'initialisation des stores
+    await Promise.all([
+      new Promise(resolve => setTimeout(resolve, 1000))
+    ]);
+    
+    // Vérifie que les stores sont initialisés
+    if (!chatStore.conversations || !userStore.user) {
+      console.error('Stores not initialized properly');
+    }
+    
     isLoading.value = false;
-    console.log('Loading finished');
-  }, 500);
+  } catch (error) {
+    console.error('Error loading app:', error);
+    isLoading.value = false;
+  }
 });
 </script>
 
 <template>
-  <div class="min-h-screen bg-dark-primary text-text-primary">
+  <div class="h-screen bg-dark-primary text-text-primary">
     <!-- État de chargement -->
     <div v-if="isLoading" class="h-screen flex items-center justify-center">
-      <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-accent-primary"></div>
+      <LoadingSpinner size="lg" />
     </div>
     
     <!-- Contenu principal -->

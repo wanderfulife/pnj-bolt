@@ -12,6 +12,25 @@ body {
   overscroll-behavior: none;
 }
 
+#app {
+  @apply h-screen bg-dark-primary;
+}
+
+/* Classes d'utilité */
+@layer components {
+  .chat-container {
+    @apply flex flex-col h-screen bg-dark-primary;
+  }
+  
+  .chat-header {
+    @apply flex items-center px-4 h-16 bg-dark-secondary border-b border-border-color;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2 bg-dark-hover rounded-full text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50;
+  }
+}
+
 /* Optimisations mobile */
 @media (max-width: 768px) {
   input, textarea, button {
@@ -33,42 +52,11 @@ body {
   @apply bg-dark-hover rounded-full;
 }
 
-/* Classes d'utilité */
-@layer components {
-  .chat-container {
-    @apply flex flex-col h-screen bg-dark-primary;
+/* Support des safe areas */
+@supports (padding: max(0px)) {
+  .h-screen {
+    height: calc(100vh - max(0px, env(safe-area-inset-top)) - max(0px, env(safe-area-inset-bottom)));
+    padding-top: max(0px, env(safe-area-inset-top));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
   }
-  
-  .chat-header {
-    @apply flex items-center px-4 h-16 bg-dark-secondary border-b border-border-color;
-  }
-  
-  .input-field {
-    @apply w-full px-4 py-2 bg-dark-hover rounded-full text-text-primary placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary/50;
-  }
-  
-  .btn-primary {
-    @apply bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-lg transition-colors;
-  }
-}
-
-/* Animations */
-.fade-enter-active,
-.fade-leave-active {
-  @apply transition-opacity duration-300;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  @apply opacity-0;
-}
-
-.slide-right-enter-active,
-.slide-right-leave-active {
-  @apply transition-transform duration-300;
-}
-
-.slide-right-enter-from,
-.slide-right-leave-to {
-  @apply translate-x-full;
 }

@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useChatStore = defineStore('chat', () => {
-  console.log('Initializing chat store')
   const activeChat = ref(null)
   const conversations = ref([
     {
@@ -10,9 +9,10 @@ export const useChatStore = defineStore('chat', () => {
       name: "Sarah's AI",
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
       status: 'online',
-      lastMessage: "Hi! I'd love to learn more about your interests.",
+      lastMessage: "Looking forward to...",
       timestamp: new Date(),
       unread: 0,
+      type: 'AI',
       messages: [
         {
           id: 1,
@@ -26,21 +26,34 @@ export const useChatStore = defineStore('chat', () => {
           sender: 'user',
           timestamp: new Date(Date.now() - 3500000),
         }
-      ],
-      profile: {
-        bio: "I'm an AI companion trained to be empathetic, creative, and helpful.",
-        location: 'Seattle, WA',
-        traits: ['Creative', 'Empathetic', 'Curious', 'Supportive', 'Adventurous'],
-        interests: ['Photography', 'Hiking', 'Art', 'Technology'],
-        createdAt: 'March 2024'
-      }
+      ]
+    },
+    {
+      id: '2',
+      name: "Mike's AI",
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
+      status: 'online',
+      lastMessage: "That's an interestin...",
+      timestamp: new Date(Date.now() - 86400000),
+      unread: 0,
+      type: 'AI',
+      messages: []
+    },
+    {
+      id: '3',
+      name: "Emma Wilson",
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
+      status: 'offline',
+      lastMessage: "Let's meet up this...",
+      timestamp: new Date(Date.now() - 172800000),
+      unread: 1,
+      type: 'Friend',
+      messages: []
     }
   ])
 
   function setActiveChat(chatId) {
-    activeChat.value = chatId ? 
-      conversations.value.find(c => c.id === chatId) : 
-      null
+    activeChat.value = chatId ? conversations.value.find(c => c.id === chatId) : null
   }
 
   function sendMessage(text) {
@@ -54,24 +67,32 @@ export const useChatStore = defineStore('chat', () => {
       status: 'sent'
     }
 
+    // Ajouter le message à la conversation active
+    if (!activeChat.value.messages) {
+      activeChat.value.messages = []
+    }
     activeChat.value.messages.push(newMessage)
+    
+    // Mettre à jour le dernier message
     activeChat.value.lastMessage = text.trim()
     activeChat.value.timestamp = new Date()
 
-    // Simuler la réponse
+    // Simuler une réponse de l'AI
     setTimeout(() => {
-      const aiMessage = {
+      const aiResponse = {
         id: Date.now() + 1,
-        text: generateAIResponse(text),
+        text: generateAIResponse(),
         sender: 'ai',
         timestamp: new Date(),
-        avatar: activeChat.value.avatar
+        status: 'received'
       }
-      activeChat.value.messages.push(aiMessage)
+      activeChat.value.messages.push(aiResponse)
+      activeChat.value.lastMessage = aiResponse.text
+      activeChat.value.timestamp = new Date()
     }, 1000)
   }
 
-  function generateAIResponse(text) {
+  function generateAIResponse() {
     const responses = [
       "That's fascinating! Tell me more.",
       "I'd love to hear more about that!",
