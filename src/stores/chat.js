@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { AI_RESPONSES, MESSAGE_STATUS, CHAT_TYPES } from '../constants/chatConstants'
 
 export const useChatStore = defineStore('chat', () => {
+  // State
   const activeChat = ref(null)
   const conversations = ref([
     {
@@ -12,101 +14,135 @@ export const useChatStore = defineStore('chat', () => {
       lastMessage: "Looking forward to...",
       timestamp: new Date(),
       unread: 0,
-      type: 'AI',
+      type: CHAT_TYPES.AI,
       messages: [
         {
           id: 1,
           text: "Hi! I'd love to learn more about your interests. What kind of activities do you enjoy?",
           sender: 'ai',
           timestamp: new Date(Date.now() - 3600000),
+          status: MESSAGE_STATUS.DELIVERED
         },
         {
           id: 2,
           text: "I'm really into hiking and photography. I love capturing beautiful landscapes!",
           sender: 'user',
           timestamp: new Date(Date.now() - 3500000),
+          status: MESSAGE_STATUS.SEEN
         }
       ]
     },
-    {
-      id: '2',
-      name: "Mike's AI",
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-      status: 'online',
-      lastMessage: "That's an interestin...",
-      timestamp: new Date(Date.now() - 86400000),
-      unread: 0,
-      type: 'AI',
-      messages: []
-    },
-    {
-      id: '3',
-      name: "Emma Wilson",
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-      status: 'offline',
-      lastMessage: "Let's meet up this...",
-      timestamp: new Date(Date.now() - 172800000),
-      unread: 1,
-      type: 'Friend',
-      messages: []
-    }
+    // ... other conversations
   ])
+  const isLoading = ref(false)
+  const error = ref(null)
 
-  function setActiveChat(chatId) {
-    activeChat.value = chatId ? conversations.value.find(c => c.id === chatId) : null
+  // Getters
+  const sortedConversations = computed(() => {
+    return [...conversations.value].sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    )
+  })
+
+  const groupedConversations = computed(() => ({
+    [CHAT_TYPES.AI]: conversations.value.filter(c => c.type === CHAT_TYPES.AI),
+    [CHAT_TYPES.FRIEND]: conversations.value.filter(c => c.type === CHAT_TYPES.FRIEND)
+  }))
+
+  // Actions
+  async function setActiveChat(chatId) {
+    try {
+      isLoading.value = true
+      const chat = conversations.value.find(c => c.id === chatId)
+      
+      if (chat) {
+        activeChat.value = chat
+        if (chat.unread > 0) {
+          await markChatAsRead(chatId)
+        }
+      } else {
+        activeChat.value = null
+      }
+    } catch (err) {
+      error.value = err
+      console.error('Error setting active chat:', err)
+    } finally {
+      isLoading.value = false
+    }
   }
 
-  function sendMessage(text) {
+  async function sendMessage(text) {
     if (!activeChat.value || !text.trim()) return
 
-    const newMessage = {
-      id: Date.now(),
-      text: text.trim(),
-      sender: 'user',
-      timestamp: new Date(),
-      status: 'sent'
-    }
-
-    // Ajouter le message à la conversation active
-    if (!activeChat.value.messages) {
-      activeChat.value.messages = []
-    }
-    activeChat.value.messages.push(newMessage)
-    
-    // Mettre à jour le dernier message
-    activeChat.value.lastMessage = text.trim()
-    activeChat.value.timestamp = new Date()
-
-    // Simuler une réponse de l'AI
-    setTimeout(() => {
-      const aiResponse = {
-        id: Date.now() + 1,
-        text: generateAIResponse(),
-        sender: 'ai',
+    try {
+      const newMessage = {
+        id: Date.now(),
+        text: text.trim(),
+        sender: 'user',
         timestamp: new Date(),
-        status: 'received'
+        status: MESSAGE_STATUS.SENDING
       }
-      activeChat.value.messages.push(aiResponse)
-      activeChat.value.lastMessage = aiResponse.text
+
+      // Add message to conversation
+      if (!activeChat.value.messages) {
+        activeChat.value.messages = []
+      }
+      activeChat.value.messages.push(newMessage)
+      
+      // Update conversation metadata
+      activeChat.value.lastMessage = text.trim()
       activeChat.value.timestamp = new Date()
-    }, 1000)
+
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+      newMessage.status = MESSAGE_STATUS.SENT
+
+      // Simulate AI response
+      if (activeChat.value.type === CHAT_TYPES.AI) {
+        await simulateAIResponse()
+      }
+    } catch (err) {
+      error.value = err
+      console.error('Error sending message:', err)
+    }
   }
 
-  function generateAIResponse() {
-    const responses = [
-      "That's fascinating! Tell me more.",
-      "I'd love to hear more about that!",
-      "How interesting! What else do you enjoy?",
-      "That's really cool! What got you interested in that?",
-      "I can see why you'd enjoy that. Tell me more!"
-    ]
-    return responses[Math.floor(Math.random() * responses.length)]
+  async function simulateAIResponse() {
+    const aiResponse = {
+      id: Date.now(),
+      text: AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)],
+      sender: 'ai',
+      timestamp: new Date(),
+      status: MESSAGE_STATUS.DELIVERED
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    activeChat.value.messages.push(aiResponse)
+    activeChat.value.lastMessage = aiResponse.text
+    activeChat.value.timestamp = new Date()
+  }
+
+  async function markChatAsRead(chatId) {
+    const chat = conversations.value.find(c => c.id === chatId)
+    if (chat) {
+      chat.unread = 0
+      chat.messages?.forEach(msg => {
+        if (msg.sender !== 'user') {
+          msg.status = MESSAGE_STATUS.SEEN
+        }
+      })
+    }
   }
 
   return {
     activeChat,
     conversations,
+    isLoading,
+    error,
+    sortedConversations,
+    groupedConversations,
     setActiveChat,
-    sendMessage
+    sendMessage,
+    markChatAsRead
   }
 })

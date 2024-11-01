@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { format } from 'date-fns'
+import { formatMessageTime } from '../../utils/dateUtils'
 
 const props = defineProps({
   message: {
@@ -18,26 +18,14 @@ const props = defineProps({
 })
 
 const isAI = computed(() => props.message.sender === 'ai')
+const formattedTime = computed(() => formatMessageTime(props.message.timestamp))
 
-const messageClasses = computed(() => {
-  return {
-    'ml-12': !isAI.value && !props.isFirstInGroup,
-    'mr-12': isAI.value && !props.isFirstInGroup,
-    'mb-1': !props.isLastInGroup,
-    'mb-3': props.isLastInGroup
-  }
-})
-
-const bubbleClasses = computed(() => {
-  return {
-    'bg-message-out text-white': !isAI.value,
-    'bg-message-in': isAI.value,
-    'rounded-t-2xl': props.isFirstInGroup,
-    'rounded-b-2xl': props.isLastInGroup,
-    'rounded-l-2xl': !isAI.value,
-    'rounded-r-2xl': isAI.value
-  }
-})
+const messageClasses = computed(() => ({
+  'ml-12': !isAI.value && !props.isFirstInGroup,
+  'mr-12': isAI.value && !props.isFirstInGroup,
+  'mb-1': !props.isLastInGroup,
+  'mb-3': props.isLastInGroup
+}))
 </script>
 
 <template>
@@ -45,23 +33,25 @@ const bubbleClasses = computed(() => {
     class="flex items-end"
     :class="[isAI ? 'justify-start' : 'justify-end', messageClasses]"
   >
-    <!-- Avatar (uniquement pour le premier message du groupe) -->
     <img 
       v-if="isAI && isFirstInGroup"
       :src="message.avatar"
-      class="w-8 h-8 rounded-full mr-2"
+      class="avatar avatar-sm mr-2"
       :alt="message.sender"
     />
-
-    <!-- Bulle de message -->
+    
     <div 
-      class="px-4 py-2 max-w-[70%] break-words"
-      :class="bubbleClasses"
+      class="message-bubble"
+      :class="[
+        isAI ? 'message-in' : 'message-out',
+        {'rounded-t-2xl': isFirstInGroup},
+        {'rounded-b-2xl': isLastInGroup}
+      ]"
     >
       {{ message.text }}
       <div class="flex justify-end items-center mt-1 space-x-1">
         <span class="text-xs opacity-70">
-          {{ format(new Date(message.timestamp), 'HH:mm') }}
+          {{ formattedTime }}
         </span>
         <span v-if="!isAI && message.status" class="text-xs">
           {{ message.status === 'seen' ? '✓✓' : '✓' }}

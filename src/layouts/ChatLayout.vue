@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue' // Ajout de onMounted
+import { ref, computed, onMounted } from 'vue'
 import { useChatStore } from '../stores/chat'
 import { useUserStore } from '../stores/user'
-import { App } from '@capacitor/app'
+import { useWindowSize } from '../composables/useWindowSize'
+import { useBackButton } from '../composables/useBackButton'
 import ConversationList from '../components/chat/ConversationList.vue'
 import ChatWindow from '../components/chat/ChatWindow.vue'
 import ProfileDrawer from '../components/profile/ProfileDrawer.vue'
@@ -10,105 +11,81 @@ import UserProfile from '../components/profile/UserProfile.vue'
 
 const chatStore = useChatStore()
 const userStore = useUserStore()
+const { width } = useWindowSize()
+const { handleBackButton } = useBackButton()
 
 const showUserProfile = ref(false)
 const showContactProfile = ref(false)
-const isMobileView = ref(true) // Initialisation par défaut à true
-const isLayoutMounted = ref(false) // Nouvel état pour contrôler le montage
+const isMobileView = computed(() => width.value < 768)
+const isLayoutMounted = ref(false)
 
 onMounted(() => {
-  // Initialiser isMobileView correctement
-  isMobileView.value = window.innerWidth < 768
   isLayoutMounted.value = true
-
-  window.addEventListener('resize', () => {
-    isMobileView.value = window.innerWidth < 768
-  })
-
   if (window?.Capacitor) {
-    App.addListener('backButton', ({ canGoBack }) => {
-      if (showUserProfile.value) {
-        showUserProfile.value = false
-        return
-      }
-      if (showContactProfile.value) {
-        showContactProfile.value = false
-        return
-      }
-      if (chatStore.activeChat && isMobileView.value) {
-        handleBackToList()
-        return
-      }
-      if (canGoBack) {
-        window.history.back()
-      } else {
-        App.exitApp()
-      }
-    })
+    handleBackButton(handleBackNavigation)
   }
 })
+
+function handleBackNavigation() {
+  if (showUserProfile.value) {
+    showUserProfile.value = false
+    return true
+  }
+  if (showContactProfile.value) {
+    showContactProfile.value = false
+    return true
+  }
+  if (chatStore.activeChat && isMobileView.value) {
+    handleBackToList()
+    return true
+  }
+  return false
+}
 
 function handleChatSelect(chatId) {
   chatStore.setActiveChat(chatId)
   if (isMobileView.value) {
-    const conversationList = document.querySelector('.conversation-list')
-    const chatWindow = document.querySelector('.chat-window')
-    if (conversationList && chatWindow) {
-      conversationList.style.display = 'none'
-      chatWindow.style.display = 'flex'
-    }
+    toggleMobileView('chat')
   }
 }
 
 function handleBackToList() {
   if (isMobileView.value) {
-    const conversationList = document.querySelector('.conversation-list')
-    const chatWindow = document.querySelector('.chat-window')
-    if (conversationList && chatWindow) {
-      conversationList.style.display = 'block'
-      chatWindow.style.display = 'none'
-    }
+    toggleMobileView('list')
   }
   chatStore.setActiveChat(null)
 }
 
-function handleProfileClick() {
-  showUserProfile.value = true
-}
-
-function handleContactProfileClick() {
-  showContactProfile.value = true
+function toggleMobileView(view) {
+  const conversationList = document.querySelector('.conversation-list')
+  const chatWindow = document.querySelector('.chat-window')
+  if (conversationList && chatWindow) {
+    conversationList.style.display = view === 'list' ? 'block' : 'none'
+    chatWindow.style.display = view === 'chat' ? 'flex' : 'none'
+  }
 }
 </script>
 
 <template>
   <div v-if="isLayoutMounted" class="h-screen flex bg-dark-primary">
-    <!-- Liste des conversations -->
-    <div class="conversation-list w-full md:w-80 lg:w-96 flex-shrink-0 bg-dark-primary border-r border-border-color">
+    <div 
+      class="conversation-list w-full md:w-80 lg:w-96 flex-shrink-0 bg-dark-primary border-r border-border-color"
+      :class="{'hidden md:block': chatStore.activeChat && isMobileView}"
+    >
       <ConversationList 
         @select-chat="handleChatSelect"
-        @show-profile="handleProfileClick"
+        @show-profile="showUserProfile = true"
       />
     </div>
 
-    <!-- Zone de chat -->
-    <div class="chat-window flex-1 md:flex flex-col" :class="{'hidden': !chatStore.activeChat && isMobileView}">
+    <div 
+      class="chat-window flex-1 md:flex flex-col"
+      :class="{'hidden': !chatStore.activeChat && isMobileView}"
+    >
       <template v-if="chatStore.activeChat">
-        <!-- Bouton retour mobile -->
-        <div class="md:hidden p-2 bg-dark-secondary border-b border-border-color">
-          <button 
-            @click="handleBackToList"
-            class="flex items-center text-text-primary"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </button>
-        </div>
-        
         <ChatWindow 
-          @show-profile="handleContactProfileClick"
+          @show-profile="showContactProfile = true"
+          @back="handleBackToList"
         />
       </template>
       <div 
@@ -119,29 +96,20 @@ function handleContactProfileClick() {
       </div>
     </div>
 
-    <!-- Drawers des profils -->
-    <UserProfile
-      v-if="showUserProfile"
-      :user="userStore.user"
-      @close="showUserProfile = false"
-    />
+    <Transition name="slide">
+      <UserProfile
+        v-if="showUserProfile"
+        :user="userStore.user"
+        @close="showUserProfile = false"
+      />
+    </Transition>
 
-    <ProfileDrawer
-      v-if="showContactProfile && chatStore.activeChat"
-      :profile="chatStore.activeChat"
-      @close="showContactProfile = false"
-    />
+    <Transition name="slide">
+      <ProfileDrawer
+        v-if="showContactProfile && chatStore.activeChat"
+        :profile="chatStore.activeChat"
+        @close="showContactProfile = false"
+      />
+    </Transition>
   </div>
 </template>
-
-<style scoped>
-.conversation-list {
-  display: block;
-}
-
-@media (max-width: 768px) {
-  .chat-window {
-    display: none;
-  }
-}
-</style>
