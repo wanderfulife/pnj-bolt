@@ -18,11 +18,10 @@
     "@capacitor/keyboard": "^6.0.2",
     "@capacitor/status-bar": "^6.0.1",
     "@vueuse/core": "^10.7.2",
-    "@vueuse/firebase": "^11.2.0",
+    "@vueuse/firebase": "^11.0.0",
     "date-fns": "^3.6.0",
-    "firebase": "^11.0.1",
+    "firebase": "^10.8.0",
     "pinia": "^2.1.7",
-    "uuid": "^11.0.2",
     "vue": "^3.4.38",
     "vue-router": "^4.2.5"
   },

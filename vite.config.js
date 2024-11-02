@@ -1,4 +1,3 @@
-// vite.config.js
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
@@ -12,11 +11,50 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: '0.0.0.0',
+    // Changement ici : utilisation de 'localhost' au lieu de '0.0.0.0'
+    host: 'localhost',
+    strictPort: true
   },
   build: {
     target: 'esnext',
     minify: 'esbuild',
-    sourcemap: true
+    sourcemap: true,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': [
+            'vue',
+            'vue-router',
+            'pinia',
+            '@vueuse/core',
+            'date-fns'
+          ],
+          'firebase': [
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore'
+          ],
+          'ui': [
+            '@heroicons/vue'
+          ]
+        }
+      }
+    },
+    cssCodeSplit: true,
+    reportCompressedSize: true,
+    assetsInlineLimit: 4096
+  },
+  optimizeDeps: {
+    include: [
+      'vue',
+      'vue-router',
+      'pinia',
+      '@vueuse/core',
+      'firebase/app',
+      'firebase/auth',
+      'firebase/firestore',
+      'date-fns'
+    ]
   }
 })

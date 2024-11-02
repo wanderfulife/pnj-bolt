@@ -4,6 +4,6 @@ import AuthForm from '../../components/auth/AuthForm.vue'
 
 <template>
   <div class="min-h-screen flex items-center justify-center p-4">
-    <AuthForm mode="login" />
+    <AuthForm mode="register" />
   </div>
 </template>

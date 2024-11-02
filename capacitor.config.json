@@ -3,7 +3,13 @@
   "appName": "NPJ",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "hostname": "localhost",
+    "allowNavigation": [
+      "localhost",
+      "localhost:3000",
+      "*.npj-social-network.com"
+    ]
   },
   "plugins": {
     "Keyboard": {
