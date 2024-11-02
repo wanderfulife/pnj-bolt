@@ -1,67 +1,86 @@
+// ChatWindow.vue - Version optimisée
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useChatStore } from '../../stores/chat'
-import { useAuthStore } from '../../stores/auth'
-import { dbUtils } from '../../firebase/utils'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { ref, computed, watchEffect, nextTick } from 'vue'
+import { useChatStore } from '@/stores/chat'
+import { useAuthStore } from '@/stores/auth'
+import { useNotifications } from '@/services/notificationService'
 import Message from './Message.vue'
-import LoadingSpinner from '../shared/LoadingSpinner.vue'
+import Avatar from '../shared/Avatar.vue'
 
+// Stores
 const chatStore = useChatStore()
 const authStore = useAuthStore()
-const newMessage = ref('')
-const messages = ref([])
-const isLoading = ref(false)
+const notifications = useNotifications()
 
-let unsubscribeMessages = null
+// Refs
+const messageInput = ref('')
+const messageContainer = ref(null)
+const isTyping = ref(false)
+const typingTimeout = ref(null)
 
-onMounted(() => {
-  if (chatStore.activeConversation) {
-    subscribeToMessages()
-  }
-})
+// Computed
+const canSendMessage = computed(() => 
+  messageInput.value.trim().length > 0 && !chatStore.isLoading
+)
 
-watch(() => chatStore.activeConversation, (newConversation) => {
-  if (unsubscribeMessages) {
-    unsubscribeMessages()
-  }
-  if (newConversation) {
-    subscribeToMessages()
-  }
-})
-
-function subscribeToMessages() {
-  unsubscribeMessages = dbUtils.listenToMessages(
-    chatStore.activeConversation.id,
-    (updatedMessages) => {
-      messages.value = updatedMessages
-    }
+const otherParticipant = computed(() => 
+  chatStore.activeConversation?.participants.find(
+    p => p.uid !== authStore.user.uid
   )
+)
+
+// Methods
+function handleTyping() {
+  if (typingTimeout.value) clearTimeout(typingTimeout.value)
+  isTyping.value = true
+  
+  typingTimeout.value = setTimeout(() => {
+    isTyping.value = false
+  }, 3000)
 }
 
 async function sendMessage() {
-  if (!newMessage.value.trim() || !chatStore.activeConversation) return
+  if (!canSendMessage.value) return
 
   try {
-    isLoading.value = true
-    const messageData = {
-      text: newMessage.value.trim(),
-      senderId: authStore.user.uid,
-      senderName: authStore.user.name,
-      senderAvatar: authStore.user.avatar,
-      timestamp: serverTimestamp(),
-      status: 'sent'
-    }
-
-    await dbUtils.sendMessage(chatStore.activeConversation.id, messageData)
-    newMessage.value = ''
+    const message = messageInput.value.trim()
+    messageInput.value = ''
+    
+    await chatStore.sendMessage({
+      text: message,
+      conversationId: chatStore.activeConversation.id
+    })
+    
+    // Scroll to bottom après l'envoi
+    await nextTick()
+    scrollToBottom()
   } catch (error) {
-    console.error('Error sending message:', error)
-  } finally {
-    isLoading.value = false
+    notifications.error('Failed to send message')
+    console.error('Send message error:', error)
   }
 }
 
+function scrollToBottom() {
+  if (!messageContainer.value) return
+  
+  messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+}
+
+// Watchers & Lifecycle
+watchEffect(() => {
+  if (chatStore.messages.length) {
+    nextTick(scrollToBottom)
+  }
+})
+
+// Nettoyage
+onBeforeUnmount(() => {
+  if (typingTimeout.value) {
+    clearTimeout(typingTimeout.value)
+  }
+})
+
+// Émits
 defineEmits(['show-profile', 'back'])
 </script>
 
@@ -77,22 +96,19 @@ defineEmits(['show-profile', 'back'])
           <span class="material-icons">arrow_back</span>
         </button>
         
-        <img 
-          :src="chatStore.activeConversation?.participants.find(p => p.uid !== authStore.user.uid)?.avatar" 
-          class="avatar avatar-sm"
-          :alt="chatStore.activeConversation?.participants.find(p => p.uid !== authStore.user.uid)?.name"
+        <Avatar
+          v-if="otherParticipant"
+          :src="otherParticipant.avatar"
+          :alt="otherParticipant.name"
+          size="sm"
+          :status="otherParticipant.status"
+          @click="$emit('show-profile')"
         />
         
         <div>
-          <h2 class="font-medium text-text-primary">
-            {{ chatStore.activeConversation?.participants.find(p => p.uid !== authStore.user.uid)?.name }}
-          </h2>
+          <h2 class="font-medium">{{ otherParticipant?.name }}</h2>
           <p class="text-xs text-text-secondary">
-            <span v-if="chatStore.activeConversation?.isOnline" class="inline-flex items-center">
-              <span class="status-badge status-online mr-1"></span>
-              Online
-            </span>
-            <span v-else>Offline</span>
+            {{ otherParticipant?.status === 'online' ? 'Online' : 'Offline' }}
           </p>
         </div>
       </div>
@@ -106,49 +122,108 @@ defineEmits(['show-profile', 'back'])
     </header>
 
     <!-- Messages -->
-    <div class="chat-content custom-scrollbar" ref="messageContainer">
-      <div v-if="messages.length === 0" class="flex flex-col items-center justify-center h-full text-text-secondary">
+    <div 
+      ref="messageContainer"
+      class="chat-content custom-scrollbar"
+    >
+      <div 
+        v-if="!chatStore.messages.length" 
+        class="flex flex-col items-center justify-center h-full text-text-secondary"
+      >
         <span class="material-icons text-4xl mb-2">chat</span>
         <p>Start a conversation</p>
       </div>
       
-      <Message 
-        v-else
-        v-for="(message, index) in messages"
-        :key="message.id"
-        :message="message"
-        :isFirstInGroup="index === 0 || 
-          messages[index - 1].senderId !== message.senderId"
-        :isLastInGroup="index === messages.length - 1 || 
-          messages[index + 1].senderId !== message.senderId"
-      />
+      <TransitionGroup 
+        name="message"
+        tag="div"
+        class="space-y-4"
+      >
+        <Message
+          v-for="message in chatStore.messages"
+          :key="message.id"
+          :message="message"
+          :is-own="message.senderId === authStore.user.uid"
+        />
+      </TransitionGroup>
+
+      <div 
+        v-if="isTyping"
+        class="flex items-center space-x-2 text-text-secondary p-2"
+      >
+        <div class="typing-indicator" />
+        <span class="text-sm">{{ otherParticipant?.name }} is typing...</span>
+      </div>
     </div>
 
     <!-- Input -->
     <footer class="chat-footer safe-bottom">
       <div class="flex items-center space-x-2">
         <button class="btn btn-secondary p-2">
-          <span class="material-icons">mood</span>
+          <span class="material-icons">add_photo_alternate</span>
         </button>
 
         <input
-          v-model="newMessage"
+          v-model="messageInput"
           type="text"
           placeholder="Type a message"
-          class="input-field"
+          class="input-field flex-1"
+          @input="handleTyping"
           @keyup.enter="sendMessage"
-          :disabled="isLoading"
         />
 
         <button
-          @click="sendMessage"
           class="btn btn-primary p-2"
-          :disabled="isLoading || !newMessage.trim()"
+          :disabled="!canSendMessage"
+          @click="sendMessage"
         >
-          <LoadingSpinner v-if="isLoading" size="sm" color="white" />
-          <span v-else class="material-icons">send</span>
+          <span class="material-icons">send</span>
         </button>
       </div>
     </footer>
   </div>
 </template>
+
+<style scoped>
+.message-enter-active,
+.message-leave-active {
+  transition: all 0.3s ease;
+}
+
+.message-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.message-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.typing-indicator {
+  @apply w-3 h-3 bg-text-secondary rounded-full;
+  animation: bounce 0.8s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.dark-hover') transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  @apply w-1.5;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-dark-hover rounded-full;
+}
+</style>

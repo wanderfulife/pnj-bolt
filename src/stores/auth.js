@@ -1,7 +1,7 @@
+// stores/auth.js
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { 
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
@@ -30,7 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
             user.value = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
-              ...userProfile
+              ...userProfile.data
             }
           } else {
             user.value = null
@@ -45,10 +45,51 @@ export const useAuthStore = defineStore('auth', () => {
         }
       })
 
+      // Cleanup on SSR
       if (import.meta.env.SSR) {
         unsubscribe()
       }
     })
+  }
+
+  // Nouvelle fonction updateProfile
+  async function updateProfile(profileData) {
+    try {
+      if (!user.value?.uid) {
+        throw new Error('User must be authenticated to update profile')
+      }
+
+      isLoading.value = true
+      error.value = null
+
+      // Mettre à jour le profil dans Firestore
+      const result = await dbUtils.updateUserProfile(user.value.uid, profileData)
+
+      if (result.success) {
+        // Mettre à jour le state local
+        user.value = {
+          ...user.value,
+          ...profileData,
+          profile: {
+            ...user.value.profile,
+            ...profileData.profile
+          }
+        }
+        
+        return { success: true }
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (err) {
+      console.error('Update profile error:', err)
+      error.value = err.message
+      return { 
+        success: false, 
+        error: err.message 
+      }
+    } finally {
+      isLoading.value = false
+    }
   }
 
   async function loginWithGoogle() {
@@ -56,17 +97,13 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
       isLoading.value = true
 
-      if (!navigator.onLine) {
-        throw new Error('No internet connection')
-      }
-
       const result = await signInWithPopup(auth, googleProvider)
       const firebaseUser = result.user
 
-      // Check if user profile exists
+      // Vérifier si le profil existe
       const userProfile = await dbUtils.getUserProfile(firebaseUser.uid)
       
-      // Create profile if it doesn't exist
+      // Créer le profil s'il n'existe pas
       if (!userProfile.success) {
         await dbUtils.createUserProfile(firebaseUser.uid, {
           name: firebaseUser.displayName,
@@ -77,13 +114,13 @@ export const useAuthStore = defineStore('auth', () => {
         })
       }
 
-      return { success: true }
+      return { success: true, user: firebaseUser }
     } catch (err) {
       console.error('Google login error:', err)
       error.value = err.message
       return { 
         success: false, 
-        error: err.code || err.message 
+        error: err.message 
       }
     } finally {
       isLoading.value = false
@@ -94,14 +131,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       error.value = null
       isLoading.value = true
-      
-      if (!email || !password || !name) {
-        throw new Error('All fields are required')
-      }
-
-      if (!navigator.onLine) {
-        throw new Error('No internet connection')
-      }
 
       const { user: firebaseUser } = await createUserWithEmailAndPassword(
         auth, 
@@ -123,7 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = err.message
       return { 
         success: false, 
-        error: err.code || err.message 
+        error: err.message 
       }
     } finally {
       isLoading.value = false
@@ -135,15 +164,11 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
       isLoading.value = true
       
-      if (!navigator.onLine) {
-        throw new Error('No internet connection')
-      }
-
       await signInWithEmailAndPassword(auth, email, password)
       return { success: true }
     } catch (err) {
       error.value = err.message
-      return { success: false, error: err.code || err.message }
+      return { success: false, error: err.message }
     } finally {
       isLoading.value = false
     }
@@ -170,6 +195,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     login,
     loginWithGoogle,
-    logout
+    logout,
+    updateProfile // Nouvelle fonction exportée
   }
 })
